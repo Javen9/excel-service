@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <title>OTS</title>
+    <link rel="stylesheet" type="text/css" href="/lib/jquery-easyui-1.5.5.1/themes/default/easyui.css"/>
+    <link rel="stylesheet" type="text/css" href="/lib/jquery-easyui-1.5.5.1/themes/icon.css"/>
+    <script type="text/javascript" src="/lib/jquery-easyui-1.5.5.1/jquery.min.js"></script>
+    <script type="text/javascript" src="/lib/jquery-easyui-1.5.5.1/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="/lib/ajaxfileupload.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            $('#ots-tabs').tabs({
+                tools: [{
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        $("#file").click();
+                    }
+                }]
+            });
+
+            $("body").on("change", "#file", function () {
+                $.ajaxFileUpload({
+                    url: '/ots/upload',
+                    fileElementId: 'file',
+                    dataType: 'json',
+                    success: function (rep) {
+                        if (rep.code == 0) {
+                            //厂商客户标签页
+                            $('#cs-dg').datagrid({
+                                url: '/ots/getOriginalDatas',
+                                singleSelect: true,
+                                fit: true,
+                                columns: initDG(rep.data.st)
+                            });
+                            $('#cs-dg').datagrid('load');
+                            $('#cs-dg2').datagrid({
+                                url: '/ots/getCustomerDatas',
+                                singleSelect: true,
+                                fit: true,
+                                columns: initDG(rep.data.cs),
+                                onDblClickCell: function (index, field, value) {
+                                    $(this).datagrid('beginEdit', index);
+                                    var ed = $(this).datagrid('getEditor', {index: index, field: field});
+                                    $(ed.target).focus();
+                                }
+                            });
+                            $('#cs-dg2').datagrid('load');
+                            //VDTL标签页
+                            $('#vdtl-dg').datagrid({
+                                url: '/ots/getOriginalDatas',
+                                singleSelect: true,
+                                fit: true,
+                                columns: initDG(rep.data.st)
+                            });
+                            $('#vdtl-dg').datagrid('load');
+                            $('#vdtl-dg2').datagrid({
+                                url: '/ots/getVDTLDatas',
+                                singleSelect: true,
+                                fit: true,
+                                columns: initDG(rep.data.vdtl),
+                                onDblClickCell: function (index, field, value) {
+                                    $(this).datagrid('beginEdit', index);
+                                    var ed = $(this).datagrid('getEditor', {index: index, field: field});
+                                    $(ed.target).focus();
+                                }
+                            });
+                            $('#vdtl-dg2').datagrid('load');
+                            //ACCN树
+                            $('#vdtl-tree').tree({
+                                url: '/ots/getAccnList'
+                            });
+                            $('#vdtl-tree').tree('reload');
+                            //VDEH标签页
+                            $('#vdeh-dg').datagrid({
+                                url: '/ots/getOriginalDatas',
+                                singleSelect: true,
+                                fit: true,
+                                columns: initDG(rep.data.st)
+                            });
+                            $('#vdeh-dg').datagrid('load');
+                            $('#vdeh-dg2').datagrid({
+                                url: '/ots/getVDEHDatas',
+                                singleSelect: true,
+                                fit: true,
+                                columns: initDG(rep.data.vdeh),
+                                onDblClickCell: function (index, field, value) {
+                                    $(this).datagrid('beginEdit', index);
+                                    var ed = $(this).datagrid('getEditor', {index: index, field: field});
+                                    $(ed.target).focus();
+                                }
+                            });
+                            $('#vdeh-dg2').datagrid('load');
+                        }
+                    }
+                });
+                $("#file").val("");
+            })
+
+            function initDG(data) {
+                var columns = "";
+                $.each(data.columns, function (i, n) {
+                    columns += '{"field":"' + n.field + '","title":"' + n.title + '","width":100,"editor":{"type":"text"}}';
+                    if (i != data.columns.length - 1) {
+                        columns += ",";
+                    }
+                });
+                return JSON.parse('[[' + columns + ']]');
+            }
+
+            $("#cs-replace").click(function () {
+                var item = $("#cs-default-item").val();
+                if (item) {
+                    var value = $("#cs-default-value").val();
+                    var cs_dg2_data = $('#cs-dg2').datagrid('getData');
+                    if (cs_dg2_data) {
+                        $.each(cs_dg2_data.rows, function (i, n) {
+                            n[item] = value;
+                        })
+                        $('#cs-dg2').datagrid('loadData', cs_dg2_data);
+                    }
+                }
+            })
+
+            $("#vdtl-build").click(function () {
+                var bmdh = $("#bmdh").val();
+                if (!bmdh) {
+                    $.messager.alert('Warning', '部门代号不能为空');
+                    return;
+                }
+                var zphryz = $("#zphryz").val();
+                if (!zphryz) {
+                    $.messager.alert('Warning', '制票号任意值不能为空');
+                    return;
+                }
+                //VDTL
+                var vdtl_dg2_data = $('#vdtl-dg2').datagrid('getData');
+                if (vdtl_dg2_data) {
+                    $.each(vdtl_dg2_data.rows, function (i, n) {
+                        n['bmdh'] = bmdh;
+                        n['zphm'] = bmdh + zphryz + n['pzhm'];
+                    })
+                    $('#vdtl-dg2').datagrid('loadData', vdtl_dg2_data);
+                }
+                //VDEH
+                var vdeh_dg2_data = $('#vdeh-dg2').datagrid('getData');
+                if (vdeh_dg2_data) {
+                    $.each(vdeh_dg2_data.rows, function (i, n) {
+                        n['bm'] = bmdh;
+                        n['cphm'] = bmdh + zphryz + n['pzhm'];
+                    })
+                    $('#vdeh-dg2').datagrid('loadData', vdeh_dg2_data);
+                }
+//                $.ajax({
+//                    type: "POST",
+//                    url: '/ots/saveBMDH',
+//                    data: {"bmdh": bmdh},
+//                    dataType: 'json',
+//                    success: function (rep) {
+//                        if (rep.code == 0) {
+//                            //VDTL
+//                            var vdtl_dg2_data = $('#vdtl-dg2').datagrid('getData');
+//                            if (vdtl_dg2_data) {
+//                                $.each(vdtl_dg2_data.rows, function (i, n) {
+//                                    n['bmdh'] = bmdh;
+//                                    n['zphm'] = bmdh + zphryz + n['pzhm'];
+//                                })
+//                                $('#vdtl-dg2').datagrid('loadData', vdtl_dg2_data);
+//                            }
+//                            //VDEH
+//                            var vdeh_dg2_data = $('#vdeh-dg2').datagrid('getData');
+//                            if (vdeh_dg2_data) {
+//                                $.each(vdeh_dg2_data.rows, function (i, n) {
+//                                    n['bm'] = bmdh;
+//                                    n['cphm'] = bmdh + zphryz + n['pzhm'];
+//                                })
+//                                $('#vdeh-dg2').datagrid('loadData', vdeh_dg2_data);
+//                            }
+//                        } else {
+//                            $.messager.alert('Warning', rep.msg);
+//                        }
+//                    }
+//                })
+            })
+
+            $("#vdeh-replace").click(function () {
+                var item = $("#vdeh-default-item").val();
+                if (item) {
+                    var value = $("#vdeh-default-value").val();
+                    var vdeh_dg2_data = $('#vdeh-dg2').datagrid('getData');
+                    if (vdeh_dg2_data) {
+                        $.each(vdeh_dg2_data.rows, function (i, n) {
+                            n[item] = value;
+                            if ("gzr" == item) {
+                                n["shzj"] = value;
+                                n["bzr"] = value;
+                            }
+                        })
+                        $('#vdeh-dg2').datagrid('loadData', vdeh_dg2_data);
+                    }
+                }
+            })
+
+            $("#cs-downLoad").click(function () {
+                download("#cs-dg2", "厂商客户");
+            });
+            $("#vdtl-downLoad").click(function () {
+                download("#vdtl-dg2", "VDTL");
+            });
+            $("#vdeh-downLoad").click(function () {
+                download("#vdeh-dg2", "VDEH");
+            });
+            $("#tree-filter").click(function () {
+                var filter = $("#filter-text").val();
+                $.ajax({
+                    type: "POST",
+                    url: '/ots/getAccnList',
+                    data: {"filter": filter},
+                    dataType: 'json',
+                    success: function (data) {
+                        $('#vdtl-tree').tree('loadData', data);
+                    }
+                })
+            });
+            $("#tree-replace").click(function () {
+                var node = $('#vdtl-tree').tree('getSelected');
+                var selectRow = $('#vdtl-dg2').datagrid('getSelected');
+                if (!node) {
+                    $.messager.alert('Warning', '请选择科目代码项');
+                    return;
+                }
+                if (!selectRow) {
+                    $.messager.alert('Warning', '请选择VDTL记录');
+                    return;
+                }
+                var vdtl_dg2_data = $('#vdtl-dg2').datagrid('getData');
+                if (vdtl_dg2_data) {
+                    $.each(vdtl_dg2_data.rows, function (i, n) {
+                        if (n['kjkm'] == selectRow['kjkm']) {
+                            n["kjkmdm"] = node["id"];
+                        }
+                    })
+                    $('#vdtl-dg2').datagrid('loadData', vdtl_dg2_data);
+                }
+            });
+
+            function download(id, type) {
+                var data = {};
+                var cs_dg2_data = $(id).datagrid('getData');
+                if (cs_dg2_data) {
+                    var columnFields = $(id).datagrid('getColumnFields');
+                    $.each(columnFields, function (i, n) {
+                        var option = $(id).datagrid('getColumnOption', n);
+                        var array = new Array();
+                        $.each(cs_dg2_data.rows, function (i2, n2) {
+                            array[i2] = n2[option.field];
+                        })
+                        data[option.title] = array;
+                    })
+                    //模拟form下载
+                    var url = "/ots/downLoad";
+                    var form = $("<form></form>").attr("action", url).attr("method", "post");
+                    form.append($("<input></input>").attr("type", "hidden").attr("name", "jsonData").attr("value", JSON.stringify(data)));
+                    form.append($("<input></input>").attr("type", "hidden").attr("name", "type").attr("value", type));
+                    form.appendTo('body').submit().remove();
+                }
+            }
+        })
+    </script>
+</head>
+<body>
+<input type="file" id="file" name="file" hidden="hidden"/>
+<div id="ots-tabs" class="easyui-tabs" fit="true" border="false">
+    <div title="厂商客户" style="display:none;">
+        <div class="easyui-panel" style="height:47%;">
+            <table id="cs-dg"></table>
+        </div>
+        <div style="padding: 5px;">
+            <select id="cs-default-item">
+                <option value="dxb">对象别</option>
+                <option value="khsl">客户税率</option>
+            </select>
+            <input type="text" id="cs-default-value" style="width:100px;"/>
+            <a id="cs-replace" href="#" class="easyui-linkbutton">替换值</a>
+            <a id="cs-downLoad" href="#" class="easyui-linkbutton" style="float: right">下载</a>
+        </div>
+        <div class="easyui-panel" style="height:48%;">
+            <table id="cs-dg2"></table>
+        </div>
+    </div>
+    <div title="VDTL" style="display:none;">
+        <div class="easyui-panel" style="height:47%;">
+            <table id="vdtl-dg"></table>
+        </div>
+        <div style="padding: 5px;">
+            <input type="text" id="filter-text" style="width:100px;"/>
+            <a id="tree-filter" href="#" class="easyui-linkbutton">过滤</a>
+
+            <span style="margin-left: 200px">部门代号：</span>
+            <input type="text" id="bmdh" style="width:100px;"/>
+            <span>制票号任意值：</span>
+            <input type="text" id="zphryz" style="width:100px;"/>
+            <a id="vdtl-build" href="#" class="easyui-linkbutton">生成制票号</a>
+            <a id="vdtl-downLoad" href="#" class="easyui-linkbutton" style="float: right">下载</a>
+        </div>
+        <div class="easyui-panel" style="height:48%;">
+            <table style="width:100%;border:0;margin:0;padding:0;height:100%;" cellspacing="0">
+                <tr>
+                    <td width="300px">
+                        <div class="easyui-panel" fit="true">
+                            <ul id="vdtl-tree" class="easyui-tree"></ul>
+                        </div>
+                    </td>
+                    <td width="25px">
+                        <a id="tree-replace" href="#" class="easyui-linkbutton">></a>
+                    </td>
+                    <td>
+                        <div class="easyui-panel" fit="true">
+                            <table id="vdtl-dg2"></table>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div title="VDEH" style="display:none;">
+        <div class="easyui-panel" style="height:47%;">
+            <table id="vdeh-dg"></table>
+        </div>
+        <div style="padding: 5px;">
+            <select id="vdeh-default-item">
+                <option value="gzr">过账人</option>
+                <option value="lrrq">录入日期</option>
+            </select>
+            <input type="text" id="vdeh-default-value" style="width:100px;"/>
+            <a id="vdeh-replace" href="#" class="easyui-linkbutton">替换值</a>
+            <a id="vdeh-downLoad" href="#" class="easyui-linkbutton" style="float: right">下载</a>
+        </div>
+        <div class="easyui-panel" style="height:48%;">
+            <table id="vdeh-dg2"></table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
